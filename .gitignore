@@ -1,0 +1,42 @@
+
+# Azure
+.azure/
+publish/
+
+# Environment overrides
+appsettings.*.local.json
+
+# Database
+database/
+*.db
+*.db-shm
+*.db-wal
+*.mdf
+*.ldf
+__azurite*
+__blobstorage__/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.angular/
+
+# .NET
+backend/bin/
+backend/obj/
+
+# Build artifacts
+*.zip
+nul
+
+# IDE
+.vs/
+.vscode/
+*.user
+
+# Claude Code
+.claude/
+
+# Tests
+tests/**/bin/
+tests/**/obj/

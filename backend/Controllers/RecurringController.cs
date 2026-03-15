@@ -13,11 +13,13 @@ public class RecurringController : ControllerBase
 {
     private readonly AppDbContext _db;
     private readonly BudgetEngine _engine;
+    private readonly RecurringService _recurring;
 
-    public RecurringController(AppDbContext db, BudgetEngine engine)
+    public RecurringController(AppDbContext db, BudgetEngine engine, RecurringService recurring)
     {
         _db = db;
         _engine = engine;
+        _recurring = recurring;
     }
 
     [HttpGet]
@@ -36,7 +38,7 @@ public class RecurringController : ControllerBase
             {
                 next = r.LastAppliedDate == null
                     ? r.StartDate.Date
-                    : NextDueDate(r.LastAppliedDate.Value, r.Frequency);
+                    : RecurringService.NextDueDate(r.LastAppliedDate.Value, r.Frequency);
             }
 
             return new RecurringItemDto(
@@ -52,7 +54,8 @@ public class RecurringController : ControllerBase
                 r.Frequency,
                 r.Active,
                 r.LastAppliedDate?.ToString("yyyy-MM-dd"),
-                next?.ToString("yyyy-MM-dd"));
+                next?.ToString("yyyy-MM-dd"),
+                r.IsSystem);
         }).ToList();
 
         return Ok(new { items });
@@ -181,7 +184,7 @@ public class RecurringController : ControllerBase
     [HttpPost("apply")]
     public async Task<IActionResult> ApplyNow()
     {
-        var applied = await ApplyRecurringItems(DateTime.Today);
+        var applied = await _recurring.ApplyRecurringItems(DateTime.Today);
         return Ok(new { ok = true, applied });
     }
 
@@ -256,7 +259,7 @@ public class RecurringController : ControllerBase
     [HttpPost("confirm-all")]
     public async Task<IActionResult> ConfirmAll()
     {
-        var applied = await ApplyRecurringItems(DateTime.Today);
+        var applied = await _recurring.ApplyRecurringItems(DateTime.Today);
         return Ok(new { ok = true, applied });
     }
 
@@ -269,7 +272,7 @@ public class RecurringController : ControllerBase
     {
         var activeItems = await _db.RecurringItems
             .Include(r => r.Envelope)
-            .Where(r => r.Active)
+            .Where(r => r.Active && !r.IsSystem)
             .ToListAsync();
 
         var pending = new List<PendingRecurringItemDto>();
@@ -280,7 +283,7 @@ public class RecurringController : ControllerBase
             if (item.LastAppliedDate == null)
                 nextDate = item.StartDate.Date;
             else
-                nextDate = NextDueDate(item.LastAppliedDate.Value, item.Frequency);
+                nextDate = RecurringService.NextDueDate(item.LastAppliedDate.Value, item.Frequency);
 
             while (nextDate <= upToDate)
             {
@@ -296,93 +299,10 @@ public class RecurringController : ControllerBase
                     item.Frequency
                 ));
 
-                nextDate = NextDueDate(nextDate, item.Frequency);
+                nextDate = RecurringService.NextDueDate(nextDate, item.Frequency);
             }
         }
 
         return pending;
-    }
-
-    /// <summary>
-    /// Apply all active recurring items up to the given date.
-    /// Returns the count of records created.
-    /// </summary>
-    public async Task<int> ApplyRecurringItems(DateTime upToDate)
-    {
-        var activeItems = await _db.RecurringItems
-            .Where(r => r.Active)
-            .ToListAsync();
-
-        int created = 0;
-
-        foreach (var item in activeItems)
-        {
-            DateTime nextDate;
-            if (item.LastAppliedDate == null)
-            {
-                nextDate = item.StartDate.Date;
-            }
-            else
-            {
-                nextDate = NextDueDate(item.LastAppliedDate.Value, item.Frequency);
-            }
-
-            if (nextDate > upToDate) continue;
-
-            DateTime lastGenerated = nextDate;
-
-            while (nextDate <= upToDate)
-            {
-                lastGenerated = nextDate;
-
-                if (item.Type == "Income")
-                {
-                    _db.Incomes.Add(new Income
-                    {
-                        Amount = item.Amount,
-                        Date = nextDate,
-                        Type = item.IncomeType ?? "Paycheck",
-                        Description = item.Description,
-                        RecurringItemId = item.Id,
-                    });
-                    created++;
-                }
-                else if (item.Type == "Expense" && item.EnvelopeId.HasValue)
-                {
-                    _db.Transactions.Add(new Transaction
-                    {
-                        EnvelopeId = item.EnvelopeId.Value,
-                        Amount = item.Amount,
-                        Date = nextDate,
-                        Description = item.Description,
-                        RecurringItemId = item.Id,
-                    });
-                    created++;
-                }
-
-                nextDate = NextDueDate(nextDate, item.Frequency);
-            }
-
-            item.LastAppliedDate = lastGenerated;
-        }
-
-        if (created > 0)
-            await _db.SaveChangesAsync();
-
-        return created;
-    }
-
-    /// <summary>
-    /// Calculate the next due date based on frequency.
-    /// </summary>
-    private static DateTime NextDueDate(DateTime current, string frequency)
-    {
-        return frequency switch
-        {
-            "Monthly" => current.AddMonths(1),
-            "Quarterly" => current.AddMonths(3),
-            "Yearly" => current.AddYears(1),
-            _ => current.AddDays(14), // Fortnightly (default)
-        };
     }
 }

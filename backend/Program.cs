@@ -35,6 +35,7 @@ builder.Services.AddHttpClient("YahooFinance", client =>
 // Services
 builder.Services.AddSingleton<BlobStorageService>();
 builder.Services.AddScoped<BudgetEngine>();
+builder.Services.AddScoped<RecurringService>();
 builder.Services.AddSingleton<YahooFinanceService>();
 builder.Services.AddScoped<TickerDirectoryService>();
 

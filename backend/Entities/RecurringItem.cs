@@ -14,5 +14,6 @@ public class RecurringItem : ITenantEntity
     public string Frequency { get; set; } = "Fortnightly";
     public bool Active { get; set; } = true;
     public DateTime? LastAppliedDate { get; set; }
+    public bool IsSystem { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 }

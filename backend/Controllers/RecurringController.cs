@@ -120,6 +120,17 @@ public class RecurringController : ControllerBase
         var item = await _db.RecurringItems.FindAsync(id);
         if (item == null) return NotFound(new { error = "Recurring item not found." });
 
+        if (item.IsSystem)
+        {
+            // System items: only amount and description can be changed
+            if (req.Amount <= 0)
+                return BadRequest(new { error = "Amount must be positive." });
+            item.Amount = Math.Round(req.Amount, 2);
+            item.Description = req.Description?.Trim() ?? string.Empty;
+            await _db.SaveChangesAsync();
+            return Ok(new { ok = true });
+        }
+
         if (req.Amount <= 0)
             return BadRequest(new { error = "Amount must be positive." });
 
@@ -174,6 +185,9 @@ public class RecurringController : ControllerBase
     {
         var item = await _db.RecurringItems.FindAsync(id);
         if (item == null) return NotFound(new { error = "Recurring item not found." });
+
+        if (item.IsSystem)
+            return BadRequest(new { error = "System recurring items cannot be deleted. You can pause them instead." });
 
         _db.RecurringItems.Remove(item);
         await _db.SaveChangesAsync();

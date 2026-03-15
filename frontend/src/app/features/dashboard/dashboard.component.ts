@@ -82,7 +82,7 @@ import { StatCardComponent } from '../../shared/components/stat-card/stat-card.c
               </thead>
               <tbody>
                 @for (r of dashboard.income.records; track r.id) {
-                  <tr>
+                  <tr [class.bg-blue-50]="r.id === 0">
                     <td>{{ r.date }}</td>
                     <td>
                       @switch (r.type) {
@@ -92,11 +92,13 @@ import { StatCardComponent } from '../../shared/components/stat-card/stat-card.c
                       }
                     </td>
                     <td class="text-end text-ok font-medium">{{ r.amount | aud }}</td>
-                    <td>{{ r.description }}</td>
+                    <td class="text-slate-500 text-sm">{{ r.description }}</td>
                     <td>
-                      <button class="text-over hover:text-red-800 transition-colors text-lg" (click)="deleteIncome(r.id)" style="background:none;border:none;cursor:pointer">
-                        &times;
-                      </button>
+                      @if (r.id !== 0) {
+                        <button class="text-over hover:text-red-800 transition-colors text-lg" (click)="deleteIncome(r.id)" style="background:none;border:none;cursor:pointer">
+                          &times;
+                        </button>
+                      }
                     </td>
                   </tr>
                 }

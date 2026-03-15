@@ -12,6 +12,7 @@ export interface RecurringItem {
   active: boolean;
   lastAppliedDate: string | null;
   nextDate: string | null;
+  isSystem: boolean;
 }
 
 export interface PendingRecurringItem {

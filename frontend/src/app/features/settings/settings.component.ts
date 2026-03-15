@@ -121,6 +121,9 @@ interface EnvelopeGroupSetting {
                       } @else {
                         Expense
                       }
+                      @if (item.isSystem) {
+                        <span class="badge bg-info ms-1">System</span>
+                      }
                     </td>
                     <td class="px-4 py-2.5">
                       @if (item.type === 'Expense' && item.envelopeName) {
@@ -154,9 +157,11 @@ interface EnvelopeGroupSetting {
                         <button class="btn btn-outline-secondary" [title]="item.active ? 'Pause' : 'Resume'" (click)="toggleRecurring(item)">
                           <i class="bi d-md-none" [class.bi-pause-fill]="item.active" [class.bi-play-fill]="!item.active"></i><span class="hidden md:inline">{{ item.active ? 'Pause' : 'Resume' }}</span>
                         </button>
-                        <button class="btn btn-outline-danger" title="Delete" (click)="deleteRecurring(item)">
-                          <i class="bi bi-x-lg d-md-none"></i><span class="hidden md:inline">Delete</span>
-                        </button>
+                        @if (!item.isSystem) {
+                          <button class="btn btn-outline-danger" title="Delete" (click)="deleteRecurring(item)">
+                            <i class="bi bi-x-lg d-md-none"></i><span class="hidden md:inline">Delete</span>
+                          </button>
+                        }
                       </div>
                     </td>
                   </tr>
@@ -257,38 +262,42 @@ interface EnvelopeGroupSetting {
                 <button type="button" class="btn-close" (click)="showEditRecurringModal = false"></button>
               </div>
               <div class="modal-body">
-                @if (editRecurringType === 'Income') {
-                  <div class="mb-3">
-                    <label class="form-label">Income Type</label>
-                    <select class="form-select" [(ngModel)]="editRecurringForm.incomeType">
-                      <option value="Paycheck">Paycheck</option>
-                      <option value="Bonus">Bonus</option>
-                    </select>
-                  </div>
-                }
-                @if (editRecurringType === 'Expense') {
-                  <div class="mb-3">
-                    <label class="form-label">Envelope</label>
-                    <select class="form-select" [(ngModel)]="editRecurringForm.envelopeId">
-                      @for (env of flatEnvelopes; track env.id) {
-                        <option [ngValue]="env.id">{{ env.groupName }} &gt; {{ env.name }}</option>
-                      }
-                    </select>
-                  </div>
+                @if (!editRecurringIsSystem) {
+                  @if (editRecurringType === 'Income') {
+                    <div class="mb-3">
+                      <label class="form-label">Income Type</label>
+                      <select class="form-select" [(ngModel)]="editRecurringForm.incomeType">
+                        <option value="Paycheck">Paycheck</option>
+                        <option value="Bonus">Bonus</option>
+                      </select>
+                    </div>
+                  }
+                  @if (editRecurringType === 'Expense') {
+                    <div class="mb-3">
+                      <label class="form-label">Envelope</label>
+                      <select class="form-select" [(ngModel)]="editRecurringForm.envelopeId">
+                        @for (env of flatEnvelopes; track env.id) {
+                          <option [ngValue]="env.id">{{ env.groupName }} &gt; {{ env.name }}</option>
+                        }
+                      </select>
+                    </div>
+                  }
                 }
                 <div class="mb-3">
                   <label class="form-label">Amount</label>
                   <input type="number" step="0.01" min="0.01" class="form-control" [(ngModel)]="editRecurringForm.amount" />
                 </div>
-                <div class="mb-3">
-                  <label class="form-label">Frequency</label>
-                  <select class="form-select" [(ngModel)]="editRecurringForm.frequency">
-                    <option value="Fortnightly">Fortnightly</option>
-                    <option value="Monthly">Monthly</option>
-                    <option value="Quarterly">Quarterly</option>
-                    <option value="Yearly">Yearly</option>
-                  </select>
-                </div>
+                @if (!editRecurringIsSystem) {
+                  <div class="mb-3">
+                    <label class="form-label">Frequency</label>
+                    <select class="form-select" [(ngModel)]="editRecurringForm.frequency">
+                      <option value="Fortnightly">Fortnightly</option>
+                      <option value="Monthly">Monthly</option>
+                      <option value="Quarterly">Quarterly</option>
+                      <option value="Yearly">Yearly</option>
+                    </select>
+                  </div>
+                }
                 <div class="mb-3">
                   <label class="form-label">Description</label>
                   <input type="text" class="form-control" [(ngModel)]="editRecurringForm.description" placeholder="Optional" />
@@ -666,6 +675,7 @@ export class SettingsComponent implements OnInit {
   editRecurringSubmitting = false;
   editRecurringId = 0;
   editRecurringType: 'Income' | 'Expense' = 'Income';
+  editRecurringIsSystem = false;
   editRecurringForm = {
     amount: 0,
     description: '',
@@ -1130,6 +1140,7 @@ export class SettingsComponent implements OnInit {
   openEditRecurringModal(item: RecurringItem): void {
     this.editRecurringId = item.id;
     this.editRecurringType = item.type;
+    this.editRecurringIsSystem = item.isSystem;
     this.editRecurringForm = {
       amount: item.amount,
       description: item.description,

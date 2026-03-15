@@ -170,6 +170,46 @@ public class DashboardController : ControllerBase
                 i.Id, i.Amount, i.Date.ToString("yyyy-MM-dd"), i.Type, i.Description))
             .ToListAsync();
 
+        // Project future system paycheck income for periods beyond today
+        if (end > DateTime.Today)
+        {
+            var systemPaycheck = await _db.RecurringItems
+                .FirstOrDefaultAsync(r => r.IsSystem && r.Active);
+
+            if (systemPaycheck != null)
+            {
+                // Find the next paycheck date after the last applied
+                DateTime nextPayDate;
+                if (systemPaycheck.LastAppliedDate == null)
+                    nextPayDate = systemPaycheck.StartDate.Date;
+                else
+                    nextPayDate = RecurringService.NextDueDate(systemPaycheck.LastAppliedDate.Value, systemPaycheck.Frequency);
+
+                // Project all paycheck dates from today+1 through period end
+                while (nextPayDate <= end)
+                {
+                    if (nextPayDate > DateTime.Today)
+                    {
+                        cumulativeIncome += systemPaycheck.Amount;
+
+                        if (nextPayDate >= start && nextPayDate <= end)
+                        {
+                            periodIncome += systemPaycheck.Amount;
+                            incomeRecords.Insert(0, new IncomeRecordDto(
+                                0, systemPaycheck.Amount, nextPayDate.ToString("yyyy-MM-dd"),
+                                systemPaycheck.IncomeType ?? "Paycheck",
+                                systemPaycheck.Description + " (projected)"));
+                        }
+                    }
+                    nextPayDate = RecurringService.NextDueDate(nextPayDate, systemPaycheck.Frequency);
+                }
+
+                // Recalculate remaining with projected income
+                remaining = periodIncome - periodSpent;
+                cumulativeRemaining = cumulativeIncome - cumulativeSpent;
+            }
+        }
+
         var incomeSummary = new IncomeSummaryDto(
             periodIncome, cumulativeIncome, remaining, cumulativeRemaining, incomeRecords);
 

@@ -11,17 +11,22 @@ namespace Pocketfolio.Api.Controllers;
 public class DashboardController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly RecurringService _recurring;
     private readonly BudgetEngine _engine;
 
-    public DashboardController(AppDbContext db, BudgetEngine engine)
+    public DashboardController(AppDbContext db, BudgetEngine engine, RecurringService recurring)
     {
         _db = db;
         _engine = engine;
+        _recurring = recurring;
     }
 
     [HttpGet]
     public async Task<IActionResult> Get([FromQuery] int? period, [FromQuery] string? date)
     {
+        // Auto-apply system recurring items (paycheck) on schedule
+        await _recurring.ApplySystemRecurringItems(DateTime.Today);
+
         int periodNum;
         if (date != null && DateTime.TryParse(date, out var parsedDate))
         {
@@ -129,6 +134,9 @@ public class DashboardController : ControllerBase
             invTotalBudgetFn, invTotalRollover,
             invTotalDeposited, invTotalCashToInvest,
             investmentRows);
+
+        // Include undeposited investment budget in total available
+        totalAvailable += invTotalRollover;
 
         // ── Income Section ──
         // For period 1, include all income up to period end (no prior period exists)

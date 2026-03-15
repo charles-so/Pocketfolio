@@ -23,7 +23,8 @@ public record RecurringItemDto(
     string Frequency,
     bool Active,
     string? LastAppliedDate,
-    string? NextDate
+    string? NextDate,
+    bool IsSystem
 );
 
 public record PendingRecurringItemDto(

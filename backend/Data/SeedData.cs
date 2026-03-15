@@ -77,6 +77,23 @@ public static class SeedData
             await db.SaveChangesAsync();
         }
 
+        if (!await db.RecurringItems.AnyAsync(r => r.IsSystem))
+        {
+            var totalBudget = await db.Envelopes.SumAsync(e => (decimal?)e.BudgetFn) ?? DefaultEnvelopes.Sum(e => e.Budget);
+            db.RecurringItems.Add(new RecurringItem
+            {
+                Type = "Income",
+                Amount = totalBudget,
+                Description = "Fortnightly Paycheck",
+                IncomeType = "Paycheck",
+                StartDate = DateTime.Parse((await db.Settings.FirstOrDefaultAsync(s => s.Key == "pay_cycle_start"))?.Value ?? DefaultPayCycleStart),
+                Frequency = "Fortnightly",
+                Active = true,
+                IsSystem = true,
+            });
+            await db.SaveChangesAsync();
+        }
+
         if (!await db.PortfolioHoldings.AnyAsync())
         {
             db.PortfolioHoldings.Add(new PortfolioHolding

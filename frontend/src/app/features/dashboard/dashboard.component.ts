@@ -50,7 +50,7 @@ import { StatCardComponent } from '../../shared/components/stat-card/stat-card.c
         <app-stat-card label="Spent" accent="#dc2626">
           {{ dashboard.totalSpent | aud }}
         </app-stat-card>
-        <app-stat-card label="Available" accent="#16a34a">
+        <app-stat-card label="Budget Remaining" accent="#16a34a">
           {{ dashboard.totalAvailable | aud }}
         </app-stat-card>
         <app-stat-card label="Remaining"
@@ -121,7 +121,7 @@ import { StatCardComponent } from '../../shared/components/stat-card/stat-card.c
                 <th class="text-end" style="width:100px">Budget/fn</th>
                 <th class="text-end" style="width:100px">Spent</th>
                 <th class="text-end" style="width:100px">Rollover</th>
-                <th class="text-end" style="width:110px">Available</th>
+                <th class="text-end" style="width:110px">Budget Remaining</th>
               </tr>
             </thead>
             <tbody>

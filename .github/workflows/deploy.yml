@@ -101,7 +101,7 @@ jobs:
         run: dotnet publish backend/Pocketfolio.Api.csproj -c Release -o ./publish
 
       - name: Deploy to Azure App Service
-        uses: azure/webapps-deploy@v3
+        uses: azure/webapps-deploy@v2
         with:
           app-name: charles-finance-api-${{ needs.set-env.outputs.environment }}
           publish-profile: ${{ secrets.AZURE_WEBAPP_PUBLISH_PROFILE }}
